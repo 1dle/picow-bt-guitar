@@ -1,41 +1,5 @@
-/*
- * Copyright (C) 2014 BlueKitchen GmbH
- *
- * Redistribution and use in source and binary forms, with or without
- * modification, are permitted provided that the following conditions
- * are met:
- *
- * 1. Redistributions of source code must retain the above copyright
- *    notice, this list of conditions and the following disclaimer.
- * 2. Redistributions in binary form must reproduce the above copyright
- *    notice, this list of conditions and the following disclaimer in the
- *    documentation and/or other materials provided with the distribution.
- * 3. Neither the name of the copyright holders nor the names of
- *    contributors may be used to endorse or promote products derived
- *    from this software without specific prior written permission.
- * 4. Any redistribution, use, or modification is done solely for
- *    personal benefit and not for any commercial purpose or for
- *    monetary gain.
- *
- * THIS SOFTWARE IS PROVIDED BY BLUEKITCHEN GMBH AND CONTRIBUTORS
- * ``AS IS'' AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
- * LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS
- * FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL BLUEKITCHEN
- * GMBH OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT,
- * INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING,
- * BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS
- * OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED
- * AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,
- * OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF
- * THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
- * SUCH DAMAGE.
- *
- * Please inquire about commercial licensing options at 
- * contact@bluekitchen-gmbh.com
- *
- */
-
 #define BTSTACK_FILE__ "main.c"
+#define HEARTBEAT_PERIOD_MS 10
 
 #include <stdint.h>
 #include <stdio.h>
@@ -43,17 +7,21 @@
 #include <string.h>
 #include <inttypes.h>
 #include "btstack.h"
+#include "pico/stdlib.h"
+#include "hardware/gpio.h"
 
 static const char hid_device_name[] = "Bluetooth Gamepad";
 static const char service_name[] = "Wireless Gamepad";
 static uint8_t hid_service_buffer[300];
-static uint8_t device_id_sdp_service_buffer[100];
+//static uint8_t device_id_sdp_service_buffer[100];
 static btstack_packet_callback_registration_t hci_event_callback_registration;
 static uint16_t hid_cid;
 
 static uint16_t host_max_latency = 1600;
 static uint16_t host_min_timeout = 3200;
 static uint8_t hid_boot_device = 0;
+
+static btstack_timer_source_t heartbeat;
 
 const uint8_t reportMap[] = {
     0x05, 0x01,                   // USAGE_PAGE (Generic Desktop)
@@ -91,17 +59,46 @@ typedef struct
 gamepad_report_t;
 
 static gamepad_report_t joystick;
-
-static void send_report_joystick(){
-    //Dummy report, presses two buttons and moves the stick to the down-right corner
-    joystick.left_x = 120;
-    joystick.left_y = 120;
-    joystick.buttons |= 0x1;
-    joystick.buttons |= 0x4;
+//    joystick.left_y = 120;
+ //   joystick.buttons |= 0x1;
+//    joystick.buttons |= 0x4;
+static void send_report(){
     uint8_t report[] = {0xa1, 0x30,joystick.left_x, joystick.left_y,joystick.buttons};  
     //send report
     hid_device_send_interrupt_message(hid_cid, &report[0], sizeof(report));
 }
+
+static void joy_can_send_now(){
+    send_report();
+    joystick.left_x = 0;
+    joystick.left_y = 0;
+    if (joystick.buttons){
+        hid_device_request_can_send_now_event(hid_cid);
+    }
+}
+
+static void heartbeat_handler(btstack_timer_source_t *ts){
+    //UNUSED(ts);
+
+    if (!hid_cid) return;
+
+    //read gpio??
+    uint8_t pressed;
+    if(!gpio_get(14)){
+        pressed |= 1;
+    }
+    if(!gpio_get(15)){
+        pressed |= 2;
+    }
+    joystick.buttons = pressed;
+
+    // trigger send
+    hid_device_request_can_send_now_event(hid_cid);
+
+    // re-register timer
+    btstack_run_loop_set_timer(ts, HEARTBEAT_PERIOD_MS);
+    btstack_run_loop_add_timer(ts);
+} 
 
 static void packet_handler(uint8_t packet_type, uint16_t channel, uint8_t * packet, uint16_t packet_size){
     UNUSED(channel);
@@ -131,7 +128,12 @@ static void packet_handler(uint8_t packet_type, uint16_t channel, uint8_t * pack
                         }
                         hid_cid = hid_subevent_connection_opened_get_hid_cid(packet);
                         log_info("HID Connected\n");
-                        hid_device_request_can_send_now_event(hid_cid);
+                        //hid_device_request_can_send_now_event(hid_cid);
+                        // set one-shot timer
+                        heartbeat.process = &heartbeat_handler;
+                        btstack_run_loop_set_timer(&heartbeat, HEARTBEAT_PERIOD_MS);
+                        btstack_run_loop_add_timer(&heartbeat);
+
                         break;
                     case HID_SUBEVENT_CONNECTION_CLOSED:
                         log_info("HID Disconnected\n");
@@ -139,8 +141,7 @@ static void packet_handler(uint8_t packet_type, uint16_t channel, uint8_t * pack
                         break;
                     case HID_SUBEVENT_CAN_SEND_NOW:  
                         if(hid_cid!=0){ //Solves crash when disconnecting gamepad on android
-                          send_report_joystick();
-                          hid_device_request_can_send_now_event(hid_cid);
+                          joy_can_send_now();
                         }
                         break;
                     default:
@@ -153,10 +154,31 @@ static void packet_handler(uint8_t packet_type, uint16_t channel, uint8_t * pack
     }
 }
 
+void init_inputs(){
+
+    gpio_init(14);
+    gpio_init(15);
+    gpio_set_dir(14, GPIO_IN);
+    gpio_set_dir(15, GPIO_IN);
+    // We are using the button to pull down to 0v when pressed, so ensure that when
+    // unpressed, it uses internal pull ups. Otherwise when unpressed, the input will
+    // be floating.
+    gpio_pull_up(14);
+    gpio_pull_up(15);
+}
+
+
+
+void read_inputs(){
+
+}
+
 int btstack_main(int argc, const char * argv[]);
 int btstack_main(int argc, const char * argv[]){
     (void)argc;
     (void)argv;
+
+    init_inputs();
 
     gap_discoverable_control(1);
     gap_set_class_of_device(0x2508);
@@ -205,6 +227,7 @@ int btstack_main(int argc, const char * argv[]){
     hci_add_event_handler(&hci_event_callback_registration);
 
     hid_device_register_packet_handler(&packet_handler);
+
 
     // turn on!
     hci_power_control(HCI_POWER_ON);
