@@ -33,8 +33,9 @@ set(BTSTACK_EXAMPLE_PATH ${BTSTACK_ROOT}/example)
 # Adds common stuff for all the examples
 add_library(picow_bt_common INTERFACE)
 target_sources(picow_bt_common INTERFACE
-        ${CMAKE_CURRENT_LIST_DIR}/config/picow_bt_example_common.c
-        ${CMAKE_CURRENT_LIST_DIR}/config/picow_bt_example_background.c
+        #${CMAKE_CURRENT_LIST_DIR}/config/picow_bt_example_common.c
+        #${CMAKE_CURRENT_LIST_DIR}/config/picow_bt_example_background.c
+        ${CMAKE_CURRENT_LIST_DIR}/src/blue_hid.c
         ${CMAKE_CURRENT_LIST_DIR}/src/main.c
         )
 target_link_libraries(picow_bt_common INTERFACE
@@ -43,7 +44,7 @@ target_link_libraries(picow_bt_common INTERFACE
         pico_cyw43_arch_threadsafe_background
         )
 target_include_directories(picow_bt_common INTERFACE
-        ${CMAKE_CURRENT_LIST_DIR}/config # Use our own config
+        ${CMAKE_CURRENT_LIST_DIR}/src/config # Use our own config
         #${BTSTACK_EXAMPLE_PATH}/
         )
 target_compile_definitions(picow_bt_common INTERFACE
@@ -53,11 +54,14 @@ target_compile_definitions(picow_bt_common INTERFACE
         #ENABLE_SEGGER_RTT=1
         )
 
+add_subdirectory(src/flash)
+
 add_executable(${PROJECT_NAME})
 target_link_libraries(${PROJECT_NAME} PRIVATE
         picow_bt_common
         pico_btstack_ble
         pico_btstack_classic
+        flash
 )
 
 pico_add_extra_outputs(${PROJECT_NAME})
