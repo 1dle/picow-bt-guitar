@@ -39,6 +39,7 @@ target_sources(picow_bt_common INTERFACE
         ${CMAKE_CURRENT_LIST_DIR}/src/main.c
         )
 target_link_libraries(picow_bt_common INTERFACE
+        hardware_adc
         pico_stdlib
         pico_btstack_cyw43
         pico_cyw43_arch_threadsafe_background
@@ -64,5 +65,7 @@ target_link_libraries(${PROJECT_NAME} PRIVATE
         flash
 )
 
+#pico_enable_stdio_usb(${PROJECT_NAME} 1)
+#pico_enable_stdio_uart(${PROJECT_NAME} 0)
 pico_add_extra_outputs(${PROJECT_NAME})
 

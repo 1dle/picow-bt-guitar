@@ -34,11 +34,11 @@ void flash_get_device_address(uint8_t *p_addr){
 
 uint8_t report[50];
 
-volatile SwitchReport *bluetooth_switch_report;
+//volatile SwitchReport *bluetooth_switch_report;
 
 // HID Report sending
 static void send_report(){
-    memcpy(&report[2], (uint8_t *)bluetooth_switch_report, sizeof(SwitchReport));
+    //memcpy(&report[2], (uint8_t *)bluetooth_switch_report, sizeof(SwitchReport));
     hid_device_send_interrupt_message(hid_cid, report, sizeof(SwitchReport) + 2);
     hid_device_request_can_send_now_event(hid_cid);
 }
@@ -115,9 +115,9 @@ static void packet_handler(uint8_t packet_type, uint16_t channel, uint8_t * pack
     }
 }
 
-int btstack_hid(void *switch_data){
+int btstack_hid(void){
 
-    bluetooth_switch_report = switch_data;
+    //bluetooth_switch_report = switch_data;
 
     //init_led function already init the wifi
     if (cyw43_arch_init()) {
@@ -195,7 +195,7 @@ int btstack_hid(void *switch_data){
     }
     
 
-    btstack_run_loop_execute();
+    //btstack_run_loop_execute();
 
-    return 0;
+    return connected;
 }
