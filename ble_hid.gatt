@@ -1,0 +1,38 @@
+// Xbox Series X BLE HID GATT Database
+// Matches NimBLE/ESP32 working GATT structure for xinputhid driver compatibility
+
+PRIMARY_SERVICE, GAP_SERVICE
+CHARACTERISTIC, GAP_DEVICE_NAME, READ, "titkos mikkentyu"
+CHARACTERISTIC, GAP_APPEARANCE, READ, 0xC3, 0x03
+
+// Battery Service
+#import <battery_service.gatt>
+
+// Device Information Service
+#import <device_information_service.gatt>
+
+// Human Interface Device Service (0x1812)
+PRIMARY_SERVICE, ORG_BLUETOOTH_SERVICE_HUMAN_INTERFACE_DEVICE
+
+// Protocol Mode (0x2A4E) - managed dynamically by hids_device
+CHARACTERISTIC, ORG_BLUETOOTH_CHARACTERISTIC_PROTOCOL_MODE, DYNAMIC | READ | WRITE_WITHOUT_RESPONSE,
+
+// Input Report (0x2A4D) - Report ID 1, Type Input (1)
+// REPORT_REFERENCE descriptor (0x2908) is CRITICAL for Windows to identify this as Input Report ID 1
+CHARACTERISTIC, ORG_BLUETOOTH_CHARACTERISTIC_REPORT, DYNAMIC | READ | WRITE | NOTIFY | ENCRYPTION_KEY_SIZE_16,
+REPORT_REFERENCE, READ, 1, 1
+
+// Output Report (0x2A4D) - Report ID 3, Type Output (2)
+// Required for Xbox haptic/vibration feedback from Windows
+CHARACTERISTIC, ORG_BLUETOOTH_CHARACTERISTIC_REPORT, DYNAMIC | READ | WRITE | WRITE_WITHOUT_RESPONSE | ENCRYPTION_KEY_SIZE_16,
+REPORT_REFERENCE, READ, 3, 2
+
+// Report Map (0x2A4B) - HID descriptor served dynamically by hids_device_init()
+CHARACTERISTIC, ORG_BLUETOOTH_CHARACTERISTIC_REPORT_MAP, DYNAMIC | READ,
+
+// HID Information (0x2A4A): bcdHID=0x0111 (v1.11), bCountryCode=0x00, Flags=0x01 (RemoteWake)
+// Matches NimBLE setHidInfo(0x00, 0x01) which produces {0x11, 0x01, 0x00, 0x01}
+CHARACTERISTIC, ORG_BLUETOOTH_CHARACTERISTIC_HID_INFORMATION, READ, 11 01 00 01
+
+// HID Control Point (0x2A4C)
+CHARACTERISTIC, ORG_BLUETOOTH_CHARACTERISTIC_HID_CONTROL_POINT, DYNAMIC | WRITE_WITHOUT_RESPONSE,

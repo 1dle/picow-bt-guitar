@@ -1,17 +1,31 @@
 cmake_minimum_required(VERSION 3.12)
+
+set(CMAKE_C_STANDARD 11)
+set(CMAKE_CXX_STANDARD 17)
+set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
+
+# == DO NOT EDIT THE FOLLOWING LINES for the Raspberry Pi Pico VS Code Extension to work ==
+if(WIN32)
+    set(USERHOME $ENV{USERPROFILE})
+else()
+    set(USERHOME $ENV{HOME})
+endif()
+set(sdkVersion 2.2.0)
+set(toolchainVersion 14_2_Rel1)
+set(picotoolVersion 2.2.0-a4)
+set(picoVscode ${USERHOME}/.pico-sdk/cmake/pico-vscode.cmake)
+if (EXISTS ${picoVscode})
+    include(${picoVscode})
+endif()
+
 set(PICO_BOARD pico_w)
+
 # Pull in SDK (must be before project)
 include(pico_sdk_import.cmake)
 
 #include(pico_extras_import_optional.cmake)
 
 project(pico_bt_guitar C CXX ASM)
-set(CMAKE_C_STANDARD 11)
-set(CMAKE_CXX_STANDARD 17)
-
-if (PICO_SDK_VERSION_STRING VERSION_LESS "1.3.0")
-    message(FATAL_ERROR "Raspberry Pi Pico SDK version 1.3.0 (or later) required. Your version is ${PICO_SDK_VERSION_STRING}")
-endif()
 
 set(PICO_EXAMPLES_PATH ${PROJECT_SOURCE_DIR})
 
@@ -35,7 +49,7 @@ add_library(picow_bt_common INTERFACE)
 target_sources(picow_bt_common INTERFACE
         #${CMAKE_CURRENT_LIST_DIR}/config/picow_bt_example_common.c
         #${CMAKE_CURRENT_LIST_DIR}/config/picow_bt_example_background.c
-        ${CMAKE_CURRENT_LIST_DIR}/src/blue_hid.c
+        ${CMAKE_CURRENT_LIST_DIR}/src/ble_hid_device.c
         ${CMAKE_CURRENT_LIST_DIR}/src/main.c
         )
 target_link_libraries(picow_bt_common INTERFACE
@@ -55,17 +69,18 @@ target_compile_definitions(picow_bt_common INTERFACE
         #ENABLE_SEGGER_RTT=1
         )
 
-add_subdirectory(src/flash)
-
 add_executable(${PROJECT_NAME})
+
+# Generate GATT header - must be after add_executable
+pico_btstack_make_gatt_header(${PROJECT_NAME} PRIVATE "${CMAKE_CURRENT_LIST_DIR}/ble_hid.gatt")
+
 target_link_libraries(${PROJECT_NAME} PRIVATE
         picow_bt_common
         pico_btstack_ble
         pico_btstack_classic
-        flash
 )
 
-#pico_enable_stdio_usb(${PROJECT_NAME} 1)
+pico_enable_stdio_usb(${PROJECT_NAME} 1)
 #pico_enable_stdio_uart(${PROJECT_NAME} 0)
 pico_add_extra_outputs(${PROJECT_NAME})
 
