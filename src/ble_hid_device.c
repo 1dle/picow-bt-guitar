@@ -5,6 +5,7 @@
 
 #include "pico/cyw43_arch.h"
 #include "pico/stdlib.h"
+#include "pico/unique_id.h"
 
 #include "btstack_config.h"
 #include "btstack.h"
@@ -160,6 +161,9 @@ void ble_send_hid_report(const XboxReport *report) {
 int btstack_hid(void) {
     stdio_init_all();
 
+    char serial_string[PICO_UNIQUE_BOARD_ID_SIZE_BYTES * 2 + 1];
+    pico_get_unique_board_id_string(serial_string, sizeof(serial_string));
+
     if (cyw43_arch_init()) {
         printf("ERROR: cyw43 init failed\n");
         return -1;
@@ -180,7 +184,7 @@ int btstack_hid(void) {
     device_information_service_server_init();
     device_information_service_server_set_manufacturer_name("Microsoft");
     device_information_service_server_set_model_number("Xbox Series X");
-    device_information_service_server_set_serial_number("309710067104021");
+    device_information_service_server_set_serial_number(serial_string);
     device_information_service_server_set_hardware_revision("01.00");
     device_information_service_server_set_firmware_revision("5.09");
     device_information_service_server_set_software_revision("1.0");
