@@ -195,24 +195,18 @@ static const uint8_t xbox_hid_descriptor[] = {
 #define XBOX_HAT_LEFT              0x07
 #define XBOX_HAT_UP_LEFT           0x08
 
-// Button bit mapping (15-bit field)
-#define XBOX_BUTTON_A              (1 << 0)
-#define XBOX_BUTTON_B              (1 << 1)
-#define XBOX_BUTTON_X              (1 << 2)
-#define XBOX_BUTTON_Y              (1 << 3)
-#define XBOX_BUTTON_LB             (1 << 4)
-#define XBOX_BUTTON_RB             (1 << 5)
-#define XBOX_BUTTON_BACK           (1 << 6)
-#define XBOX_BUTTON_SELECT         (1 << 6)   // Legacy alias
-#define XBOX_BUTTON_START          (1 << 7)
-#define XBOX_BUTTON_LEFT_STICK     (1 << 8)
-#define XBOX_BUTTON_RIGHT_STICK    (1 << 9)
-#define XBOX_BUTTON_GUIDE          (1 << 10)
-#define XBOX_BUTTON_HOME           (1 << 10)  // Legacy alias
-#define XBOX_BUTTON_MENU           (1 << 11)
-#define XBOX_BUTTON_XBOX_SYNC      (1 << 12)
-#define XBOX_BUTTON_XBOX_RESERVED  (1 << 13)
-#define XBOX_BUTTON_XBOX_RESERVED2 (1 << 14)
+// Button bitmasks
+#define XBOX_BUTTON_A              0x01
+#define XBOX_BUTTON_B              0x02
+#define XBOX_BUTTON_X              0x08 
+#define XBOX_BUTTON_Y              0x10
+#define XBOX_BUTTON_LB             0x40
+#define XBOX_BUTTON_RB             0x80
+#define XBOX_BUTTON_SELECT         0x400
+#define XBOX_BUTTON_START          0x800
+#define XBOX_BUTTON_HOME           0x1000
+#define XBOX_BUTTON_LS             0x2000
+#define XBOX_BUTTON_RS             0x4000
 
 // Axis ranges (sticks: 16-bit unsigned, triggers: 10-bit unsigned)
 #define XBOX_AXIS_MIN              0x0000
