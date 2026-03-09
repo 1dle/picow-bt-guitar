@@ -4,7 +4,7 @@
 This project implements a general-purpose XInput-compatible Bluetooth LE gamepad for the Raspberry Pi Pico W. It can be used as a base for custom controllers, adapters, or embedded projects.
 
 ## Features
-- XInput-compatible BLE HID gamepad for PC/console
+- XInput-compatible BLE HID gamepad for PC
 - Easily customizable GPIO-to-button/axis mapping
 - Example: Guitar Hero controller adapter (see below)
 
