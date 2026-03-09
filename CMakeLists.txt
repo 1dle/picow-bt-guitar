@@ -25,7 +25,7 @@ include(pico_sdk_import.cmake)
 
 #include(pico_extras_import_optional.cmake)
 
-project(pico_bt_guitar C CXX ASM)
+project(xinput_ble_gamepad C CXX ASM)
 
 set(PICO_EXAMPLES_PATH ${PROJECT_SOURCE_DIR})
 
@@ -47,10 +47,7 @@ set(BTSTACK_EXAMPLE_PATH ${BTSTACK_ROOT}/example)
 # Adds common stuff for all the examples
 add_library(picow_bt_common INTERFACE)
 target_sources(picow_bt_common INTERFACE
-        #${CMAKE_CURRENT_LIST_DIR}/config/picow_bt_example_common.c
-        #${CMAKE_CURRENT_LIST_DIR}/config/picow_bt_example_background.c
         ${CMAKE_CURRENT_LIST_DIR}/src/ble_hid_device.c
-        ${CMAKE_CURRENT_LIST_DIR}/src/main.c
         )
 target_link_libraries(picow_bt_common INTERFACE
         hardware_adc
@@ -69,18 +66,17 @@ target_compile_definitions(picow_bt_common INTERFACE
         #ENABLE_SEGGER_RTT=1
         )
 
-add_executable(${PROJECT_NAME})
 
-# Generate GATT header - must be after add_executable
+# === Main XInput BLE Gamepad Target ===
+add_executable(${PROJECT_NAME} src/main.c)
 pico_btstack_make_gatt_header(${PROJECT_NAME} PRIVATE "${CMAKE_CURRENT_LIST_DIR}/ble_hid.gatt")
-
 target_link_libraries(${PROJECT_NAME} PRIVATE
         picow_bt_common
         pico_btstack_ble
         pico_btstack_classic
 )
-
 pico_enable_stdio_usb(${PROJECT_NAME} 1)
-#pico_enable_stdio_uart(${PROJECT_NAME} 0)
 pico_add_extra_outputs(${PROJECT_NAME})
+
+# To build the guitar controller example, copy or reference examples/guitar_controller.c in your own CMakeLists.txt or project.
 
