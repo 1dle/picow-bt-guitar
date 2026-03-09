@@ -48,6 +48,7 @@ The original Guitar Hero controller project can be found at [this commit](https:
 
 Copy and modify `src/main.c` or use it as a template for your own GPIO/button/axis mapping. See the code comments for guidance.
 
-## Credits
+## Related projects
 
 - Inspired by [esp32-ble-guitar](https://github.com/1dle/esp32-ble-guitar)
+- [ble-gamepad-latency](https://github.com/1dle/ble-gamepad-latency): Tools and benchmarks for measuring BLE gamepad latency.
